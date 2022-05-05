@@ -201,17 +201,6 @@ class Contenedor {
       productos[Math.floor(Math.random() * productos.length)];
     return productoRandom;
   }
-  _validateKeysExist(newData) {
-    const objectKeys = Object.keys(newData);
-    let exists = true;
-
-    objectKeys.forEach((key) => {
-      if (!this._keys.includes(key)) {
-        exists = false;
-      }
-    });
-    return exists;
-  }
 }
 
 module.exports = Contenedor;

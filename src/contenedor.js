@@ -5,6 +5,8 @@ class Contenedor {
     this.nombreArchivo = nombreArchivo;
     this.id = 1;
   }
+  //Guardar producto
+
   save(title, price) {
     let producto = { title: title, price: price, id: this.id };
     let productos = [];
@@ -19,22 +21,120 @@ class Contenedor {
     fs.writeFileSync(this.nombreArchivo, JSON.stringify(productos));
     this.id++;
   }
-  getById(id) {
-    let productos = [];
+  //Guardar carrito
 
+  async saveCart(object) {
     try {
-      let data = fs.readFileSync(this.nombreArchivo, `utf-8`);
-      productos = JSON.parse(data);
-    } catch (e) {
-      console.log("archivo no creado");
+      const allData = await this.getData();
+      const parsedData = JSON.parse(allData);
+
+      object.id = parsedData.length + 1;
+      parsedData.push(object);
+
+      await fs.promises.writeFile(
+        this.nombreArchivo,
+        JSON.stringify(parsedData)
+      );
+      return object.id;
+    } catch (error) {
+      console.log(`Error: ${error.code} | error al intentar guardar`);
     }
-    let producto = null;
-    productos.forEach((product) => {
-      if (product.id == id) {
-        producto = product;
-      }
-    });
   }
+
+  // async addProductToCartById(id, product) {
+  //   try {
+  //     const carts = await this.getAll();
+  //     const cartIndex = carts.findIndex((cart) => cart.id === id);
+  //     if (cartIndex === -1) {
+  //       return returnMessage(true, "El carrito no existe", null);
+  //     }
+  //     const cart = carts[cartIndex];
+  //     cart.products = [...cart.products, ...product];
+  //     carts[cartIndex] = cart;
+  //     await fs.promises.writeFile(this.path, JSON.stringify(carts, null, 2));
+  //     return returnMessage(false, "Producto agregado al carrito", cart);
+  //   } catch (error) {
+  //     return returnMessage(
+  //       true,
+  //       "Error al agregar el producto al carrito",
+  //       null
+  //     );
+  //   }
+  // }
+  //Producto Por ID
+  async getById(id) {
+    id = Number(id);
+    try {
+      const data = await this.getData();
+      const parsedData = JSON.parse(data);
+
+      return parsedData.find((producto) => producto.id === id);
+    } catch (error) {
+      console.log(
+        `Error: ${error.code} | Error al intentar encontrar elemento (${id})`
+      );
+    }
+  }
+  //Actualizar Producto Por ID
+  async updateById(id, newData) {
+    try {
+      id = Number(id);
+      const data = await this.getData();
+      const parsedData = JSON.parse(data);
+      const objectIdToBeUpdated = parsedData.find(
+        (producto) => producto.id === id
+      );
+      if (objectIdToBeUpdated) {
+        const index = parsedData.indexOf(objectIdToBeUpdated);
+        const { title, price } = newData;
+
+        parsedData[index]["title"] = title;
+        parsedData[index]["price"] = price;
+
+        await fs.promises.writeFile(
+          this.nombreArchivo,
+          JSON.stringify(parsedData)
+        );
+        return true;
+      } else {
+        console.log(`Id ${id} No existe el archivo`);
+        return null;
+      }
+    } catch (error) {
+      `Error: ${error.code} | Error al encontrar (${id})`;
+    }
+  }
+
+  //Borrar producto por id
+
+  async deleteById(id) {
+    try {
+      id = Number(id);
+      const data = await this.getData();
+      const parsedData = JSON.parse(data);
+      const objectIdToBeRemoved = parsedData.find(
+        (producto) => producto.id === id
+      );
+
+      if (objectIdToBeRemoved) {
+        const index = parsedData.indexOf(objectIdToBeRemoved);
+        parsedData.splice(index, 1);
+        await fs.promises.writeFile(
+          this.nombreArchivo,
+          JSON.stringify(parsedData)
+        );
+        return true;
+      } else {
+        console.log(`ID ${id} does not exist in the file`);
+        return null;
+      }
+    } catch (error) {
+      console.log(
+        `Error Code: ${error.code} | There was an error when trying to delete an element by its ID (${id})`
+      );
+    }
+  }
+
   getAll() {
     let productos = [];
     try {
@@ -44,12 +144,6 @@ class Contenedor {
       console.log("archivo no creado");
     }
     return productos;
-  }
-
-  async getData() {
-    const data = await fs.promises.readFile(this.nombreArchivo, "utf-8");
-
-    return data;
   }
 
   async getAllChat() {
@@ -76,21 +170,11 @@ class Contenedor {
     }
   }
 
-  deleteById(id) {
-    let productos = [];
+  //Obtener datos del archivo
 
-    try {
-      let data = fs.readFileSync(this.nombreArchivo, `utf-8`);
-      productos = JSON.parse(data);
-    } catch (e) {
-      console.log("archivo no creado");
-    }
-
-    let newArray = productos.filter(function (element) {
-      return element.id !== id;
-    });
-
-    console.log("deleteById:" + JSON.stringify(newArray));
+  async getData() {
+    const data = await fs.promises.readFile(this.nombreArchivo, "utf-8");
+    return data;
   }
 
   deleteAll() {
@@ -116,6 +200,17 @@ class Contenedor {
     let productoRandom =
       productos[Math.floor(Math.random() * productos.length)];
     return productoRandom;
+  }
+  _validateKeysExist(newData) {
+    const objectKeys = Object.keys(newData);
+    let exists = true;
+
+    objectKeys.forEach((key) => {
+      if (!this._keys.includes(key)) {
+        exists = false;
+      }
+    });
+    return exists;
   }
 }
 
